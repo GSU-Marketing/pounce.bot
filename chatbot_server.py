@@ -28,6 +28,22 @@ class SlateInquiryForm(BaseModel):
 
 app = FastAPI()
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/bot.js")
+async def serve_widget_script():
+    js_code = '''
+    window.onload = function () {
+      var frame = document.createElement("iframe");
+      frame.src = "https://pounce-bot.vercel.app";
+      frame.style = "width: 350px; height: 500px; position: fixed; bottom: 10px; right: 10px; border: none; z-index: 9999;";
+      frame.setAttribute("aria-label", "GSU Chatbot");
+      document.body.appendChild(frame);
+    };
+    '''
+    return HTMLResponse(content=js_code, media_type="application/javascript")
+
+
 @app.post("/chat")
 async def chat_response(data: ChatMessage):
     msg = data.message.lower()

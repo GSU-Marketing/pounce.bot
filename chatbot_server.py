@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
 import json
+import httpx
 from faq_matcher import FAQMatcher
 
 KNOWN_FAQS = {
@@ -56,11 +57,17 @@ async def chat_response(data: ChatMessage):
 
 import httpx  # Add at the top with other imports
 
+import httpx  # Ensure this is imported at the top of the file
+
 SLATE_URL = (
     "https://gradapply.gsu.edu/manage/query/run"
     "?id=51c80ecd-39f2-40c2-bdca-16eda904efd6"
     "&cmd=service&output=json"
 )
+
+SLATE_AUTH_HEADER = {
+    "Authorization": "Bearer ef88dbcb-0f08-42d0-9457-fd48c71a7403"
+}
 
 @app.get("/slate/status")
 async def slate_status(
@@ -71,7 +78,7 @@ async def slate_status(
     birthdate: Optional[str] = None,
     email: Optional[str] = None,
 ):
-    # Only include fields that are filled in
+    # Include only provided fields
     provided = {k: v for k, v in {
         "panther_id": panther_id,
         "first_name": first_name,
@@ -89,12 +96,13 @@ async def slate_status(
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(SLATE_URL, params=provided)
+            response = await client.get(SLATE_URL, params=provided, headers=SLATE_AUTH_HEADER)
             response.raise_for_status()
             data = response.json()
         return {"status": "success", "results": data}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
 
 
 

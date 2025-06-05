@@ -54,9 +54,49 @@ async def chat_response(data: ChatMessage):
         return {"response": "Can you please provide your application ID?", "intent": "check_status", "confidence": "low"}
     return matcher.find_best_match(msg)
 
+import httpx  # Add at the top with other imports
+
+SLATE_URL = (
+    "https://gradapply.gsu.edu/manage/query/run"
+    "?id=51c80ecd-39f2-40c2-bdca-16eda904efd6"
+    "&cmd=service&output=json"
+)
+
 @app.get("/slate/status")
-async def slate_status(app_id: str):
-    return {"app_id": app_id, "status": "Under Review", "last_updated": "2025-04-01"}
+async def slate_status(
+    panther_id: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    phone: Optional[str] = None,
+    birthdate: Optional[str] = None,
+    email: Optional[str] = None,
+):
+    # Only include fields that are filled in
+    provided = {k: v for k, v in {
+        "panther_id": panther_id,
+        "first_name": first_name,
+        "last_name": last_name,
+        "phone": phone,
+        "birthdate": birthdate,
+        "email": email,
+    }.items() if v}
+
+    if len(provided) < 3:
+        return {
+            "status": "error",
+            "message": "Please provide at least 3 pieces of information (e.g. Panther ID, First Name, Birthdate)."
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(SLATE_URL, params=provided)
+            response.raise_for_status()
+            data = response.json()
+        return {"status": "success", "results": data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 
 @app.post("/slate/inquiry")
 async def slate_inquiry(form: SlateInquiryForm):

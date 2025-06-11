@@ -59,25 +59,22 @@ import httpx  # Add at the top with other imports
 
 import httpx  # Ensure this is imported at the top of the file
 
-SLATE_URL = "https://gradapply.gsu.edu/manage/service/api/gradtestbot/application_status"
+from fastapi import Query  # Make sure this is imported at the top if not already
 
+SLATE_URL = "https://gradapply.gsu.edu/manage/service/api/gradtestbot/application_status"
 SLATE_AUTH_HEADER = {
     "Authorization": "Bearer 1e5b8e64-548b-4341-843a-9a9bbbef92da"
 }
 
-
-
-
 @app.get("/slate/status")
 async def slate_status(
-    panther_id: Optional[str] = None,
-    first_name: Optional[str] = None,
-    last_name: Optional[str] = None,
-    phone: Optional[str] = None,
-    birthdate: Optional[str] = None,
-    email: Optional[str] = None,
+    panther_id: Optional[str] = Query(None),
+    first_name: Optional[str] = Query(None),
+    last_name: Optional[str] = Query(None),
+    phone: Optional[str] = Query(None),
+    birthdate: Optional[str] = Query(None),
+    email: Optional[str] = Query(None),
 ):
-    # Include only provided fields
     provided = {k: v for k, v in {
         "panther_id": panther_id,
         "first_name": first_name,
@@ -95,12 +92,31 @@ async def slate_status(
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(SLATE_URL, params=provided, headers=SLATE_AUTH_HEADER)
-            response.raise_for_status()
-            data = response.json()
-        return {"status": "success", "results": data}
+            res = await client.get(SLATE_URL, params=provided, headers=SLATE_AUTH_HEADER)
+            res.raise_for_status()
+            slate_data = res.json()
+
+        if not slate_data:
+            return {"status": "error", "message": "No matching applications found."}
+
+        formatted = []
+        for app in slate_data:
+            formatted.append({
+                "Reference ID": app.get("ApplicationReferenceId", "N/A"),
+                "Status": app.get("ApplicationStatus", "N/A"),
+                "Program": app.get("AppliedProgram", "N/A"),
+                "College": app.get("AppliedCollege", "N/A"),
+                "Term": app.get("AppliedTerm", "N/A")
+            })
+
+        return {"status": "success", "results": formatted}
+
+    except httpx.HTTPStatusError as e:
+        return {"status": "error", "message": f"HTTP error: {e.response.status_code}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
 
 
 

@@ -59,15 +59,14 @@ import httpx  # Add at the top with other imports
 
 import httpx  # Ensure this is imported at the top of the file
 
-SLATE_URL = (
-    "https://gradapply.gsu.edu/manage/query/run"
-    "?id=51c80ecd-39f2-40c2-bdca-16eda904efd6"
-    "&cmd=service&output=json"
-)
+SLATE_URL = "https://gradapply.gsu.edu/manage/service/api/gradtestbot/application_status"
 
 SLATE_AUTH_HEADER = {
-    "Authorization": "Bearer ef88dbcb-0f08-42d0-9457-fd48c71a7403"
+    "Authorization": "Bearer 1e5b8e64-548b-4341-843a-9a9bbbef92da"
 }
+
+
+
 
 @app.get("/slate/status")
 async def slate_status(
